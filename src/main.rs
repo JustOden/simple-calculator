@@ -5,11 +5,10 @@ struct InvalidOperator;
 
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
 enum Operation {
-    Multiply,
-    Divide,
     Add,
     Subtract,
-    Modulos,
+    Multiply,
+    Divide,
     Exponent
 }
 
@@ -23,7 +22,6 @@ impl FromStr for Operation {
             "-" => Self::Subtract,
             "*" => Self::Multiply,
             "/" => Self::Divide,
-            "%" => Self::Modulos,
             "^" => Self::Exponent,
             _ => return Err(InvalidOperator)
         })
@@ -36,8 +34,7 @@ fn calculate(num1: f32, num2: f32, op: &Operation) -> f32 {
         Operation::Subtract => num1 - num2,
         Operation::Multiply => num1 * num2,
         Operation::Divide => num1 / num2,
-        Operation::Exponent => num1.powf(num2),
-        Operation::Modulos => num1 % num2
+        Operation::Exponent => num1.powf(num2)
     }
 }
 
@@ -90,8 +87,6 @@ fn math2() {
         for i in 0..ops.len() {
             match ops[i] {
                 Operation::Exponent => {
-                    println!("{:?} {:?}", nums, ops);
-                    println!("{} raised by {} = {}", nums[i], nums[i+1], nums[i].powf(nums[i+1]));
                     if nums[i] < 0. {
                         nums[i] = -calculate(nums[i]*-1., nums[i+1], &ops[i]);
                     } else {
@@ -99,8 +94,6 @@ fn math2() {
                     }
                     ops.remove(i);
                     nums.remove(i+1);
-                    println!("{:?} {:?}", nums, ops);
-                    println!("break loop");
                     break;
                 },
                 _ => ()
@@ -112,23 +105,15 @@ fn math2() {
         for i in 0..ops.len() {
             match ops[i] {
                 Operation::Multiply => {
-                    println!("{:?} {:?}", nums, ops);
-                    println!("{} x {} = {}", nums[i], nums[i+1], nums[i] * nums[i+1]);
                     nums[i] = calculate(nums[i], nums[i+1], &ops[i]);
                     ops.remove(i);
                     nums.remove(i+1);
-                    println!("{:?} {:?}", nums, ops);
-                    println!("break loop");
                     break;
                 },
                 Operation::Divide => {
-                    println!("{:?} {:?}", nums, ops);
-                    println!("{} / {} = {}", nums[i], nums[i+1], nums[i] / nums[i+1]);
                     nums[i] = calculate(nums[i], nums[i+1], &ops[i]);
                     ops.remove(i);
                     nums.remove(i+1);
-                    println!("{:?} {:?}", nums, ops);
-                    println!("break loop");
                     break;
                 },
                 _ => ()
@@ -140,41 +125,15 @@ fn math2() {
         for i in 0..ops.len() {
             match ops[i] {
                 Operation::Add => {
-                    println!("{:?} {:?}", nums, ops);
-                    println!("{} + {} = {}", nums[i], nums[i+1], nums[i] + nums[i+1]);
                     nums[i] = calculate(nums[i], nums[i+1], &ops[i]);
                     ops.remove(i);
                     nums.remove(i+1);
-                    println!("{:?} {:?}", nums, ops);
-                    println!("break loop");
                     break;
                 },
                 Operation::Subtract => {
-                    println!("{:?} {:?}", nums, ops);
-                    println!("{} - {} = {}", nums[i], nums[i+1], nums[i] - nums[i+1]);
                     nums[i] = calculate(nums[i], nums[i+1], &ops[i]);
                     ops.remove(i);
                     nums.remove(i+1);
-                    println!("{:?} {:?}", nums, ops);
-                    println!("break loop");
-                    break;
-                },
-                _ => ()
-            }
-        }
-    }
-
-    while ops.contains(&Operation::Modulos) {
-        for i in 0..ops.len() {
-            match ops[i] {
-                Operation::Modulos => {
-                    println!("{:?} {:?}", nums, ops);
-                    println!("{} % {} = {}", nums[i], nums[i+1], nums[i] % nums[i+1]);
-                    nums[i] = calculate(nums[i], nums[i+1], &ops[i]);
-                    ops.remove(i);
-                    nums.remove(i+1);
-                    println!("{:?} {:?}", nums, ops);
-                    println!("break loop");
                     break;
                 },
                 _ => ()
