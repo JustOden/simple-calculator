@@ -12,7 +12,6 @@ enum Operation {
     Exponent
 }
 
-
 impl FromStr for Operation {
     type Err = InvalidOperator;
 
@@ -38,6 +37,78 @@ fn calculate(num1: f32, num2: f32, op: &Operation) -> f32 {
     }
 }
 
+fn debug(num1: f32, num2: f32, op: &Operation) {
+    println!("{} {:?} {} = {}", num1, op, num2, calculate(num1, num2, op))
+}
+
+fn calculate_v2(mut nums: Vec<f32>, mut ops: Vec<Operation>) -> f32 {
+    while ops.contains(&Operation::Exponent) {
+        for i in 0..ops.len() {
+            match ops[i] {
+                Operation::Exponent => {
+                    
+                    if nums[i] < 0. {
+                        debug(nums[i]*-1., nums[i+1], &ops[i]);
+                        nums[i] = -calculate(nums[i]*-1., nums[i+1], &ops[i]);
+                    } else {
+                        debug(nums[i], nums[i+1], &ops[i]);
+                        nums[i] = calculate(nums[i], nums[i+1], &ops[i]);
+                    }
+                    ops.remove(i);
+                    nums.remove(i+1);
+                    break;
+                },
+                _ => ()
+            }
+        }
+    }
+
+    while ops.contains(&Operation::Multiply) | ops.contains(&Operation::Divide) {
+        for i in 0..ops.len() {
+            match ops[i] {
+                Operation::Multiply => {
+                    debug(nums[i], nums[i+1], &ops[i]);
+                    nums[i] = calculate(nums[i], nums[i+1], &ops[i]);
+                    ops.remove(i);
+                    nums.remove(i+1);
+                    break;
+                },
+                Operation::Divide => {
+                    debug(nums[i], nums[i+1], &ops[i]);
+                    nums[i] = calculate(nums[i], nums[i+1], &ops[i]);
+                    ops.remove(i);
+                    nums.remove(i+1);
+                    break;
+                },
+                _ => ()
+            }
+        }
+    }
+
+    while ops.contains(&Operation::Add) | ops.contains(&Operation::Subtract) {
+        for i in 0..ops.len() {
+            match ops[i] {
+                Operation::Add => {
+                    debug(nums[i], nums[i+1], &ops[i]);
+                    nums[i] = calculate(nums[i], nums[i+1], &ops[i]);
+                    ops.remove(i);
+                    nums.remove(i+1);
+                    break;
+                },
+                Operation::Subtract => {
+                    debug(nums[i], nums[i+1], &ops[i]);
+                    nums[i] = calculate(nums[i], nums[i+1], &ops[i]);
+                    ops.remove(i);
+                    nums.remove(i+1);
+                    break;
+                },
+                _ => ()
+            }
+        }
+    }
+    nums[0]
+}
+
 #[allow(dead_code)]
 fn math1() {
     let mut num1: String = String::new();
@@ -56,7 +127,7 @@ fn math1() {
     let op: Result<Operation, InvalidOperator> = Operation::from_str(op.trim());
     
     match op {
-        Ok(op) => println!("{}", calculate(num1, num2, &op)),
+        Ok(op) => println!("Answer is {}", calculate(num1, num2, &op)),
         Err(e) => println!("{:?}", e)
     }
 }
@@ -82,70 +153,10 @@ fn math2() {
             nums.push(number);
         }
     }
-
-    while ops.contains(&Operation::Exponent) {
-        for i in 0..ops.len() {
-            match ops[i] {
-                Operation::Exponent => {
-                    if nums[i] < 0. {
-                        nums[i] = -calculate(nums[i]*-1., nums[i+1], &ops[i]);
-                    } else {
-                        nums[i] = calculate(nums[i], nums[i+1], &ops[i]);
-                    }
-                    ops.remove(i);
-                    nums.remove(i+1);
-                    break;
-                },
-                _ => ()
-            }
-        }
-    }
-
-    while ops.contains(&Operation::Multiply) | ops.contains(&Operation::Divide) {
-        for i in 0..ops.len() {
-            match ops[i] {
-                Operation::Multiply => {
-                    nums[i] = calculate(nums[i], nums[i+1], &ops[i]);
-                    ops.remove(i);
-                    nums.remove(i+1);
-                    break;
-                },
-                Operation::Divide => {
-                    nums[i] = calculate(nums[i], nums[i+1], &ops[i]);
-                    ops.remove(i);
-                    nums.remove(i+1);
-                    break;
-                },
-                _ => ()
-            }
-        }
-    }
-
-    while ops.contains(&Operation::Add) | ops.contains(&Operation::Subtract) {
-        for i in 0..ops.len() {
-            match ops[i] {
-                Operation::Add => {
-                    nums[i] = calculate(nums[i], nums[i+1], &ops[i]);
-                    ops.remove(i);
-                    nums.remove(i+1);
-                    break;
-                },
-                Operation::Subtract => {
-                    nums[i] = calculate(nums[i], nums[i+1], &ops[i]);
-                    ops.remove(i);
-                    nums.remove(i+1);
-                    break;
-                },
-                _ => ()
-            }
-        }
-    }
-
-    println!("Answer is {}", nums[0])
+    println!("Answer is {}", calculate_v2(nums, ops))
 }
 
 fn main() {
-    // math1();
+    math1();
     math2();
-
 }
