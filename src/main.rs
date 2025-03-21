@@ -33,7 +33,13 @@ fn calculate(num1: f32, num2: f32, op: &Operation) -> f32 {
         Operation::Subtract => num1 - num2,
         Operation::Multiply => num1 * num2,
         Operation::Divide => num1 / num2,
-        Operation::Exponent => num1.powf(num2)
+        Operation::Exponent => {
+            if num1 < 0. {
+                -((num1*-1.).powf(num2))
+            } else {
+                num1.powf(num2)
+            }
+        }
     }
 }
 
@@ -46,14 +52,8 @@ fn calculate_v2(mut nums: Vec<f32>, mut ops: Vec<Operation>) -> f32 {
         for i in 0..ops.len() {
             match ops[i] {
                 Operation::Exponent => {
-                    
-                    if nums[i] < 0. {
-                        debug(nums[i]*-1., nums[i+1], &ops[i]);
-                        nums[i] = -calculate(nums[i]*-1., nums[i+1], &ops[i]);
-                    } else {
-                        debug(nums[i], nums[i+1], &ops[i]);
-                        nums[i] = calculate(nums[i], nums[i+1], &ops[i]);
-                    }
+                    debug(nums[i], nums[i+1], &ops[i]);
+                    nums[i] = calculate(nums[i], nums[i+1], &ops[i]);
                     ops.remove(i);
                     nums.remove(i+1);
                     break;
@@ -66,14 +66,7 @@ fn calculate_v2(mut nums: Vec<f32>, mut ops: Vec<Operation>) -> f32 {
     while ops.contains(&Operation::Multiply) | ops.contains(&Operation::Divide) {
         for i in 0..ops.len() {
             match ops[i] {
-                Operation::Multiply => {
-                    debug(nums[i], nums[i+1], &ops[i]);
-                    nums[i] = calculate(nums[i], nums[i+1], &ops[i]);
-                    ops.remove(i);
-                    nums.remove(i+1);
-                    break;
-                },
-                Operation::Divide => {
+                Operation::Multiply | Operation::Divide => {
                     debug(nums[i], nums[i+1], &ops[i]);
                     nums[i] = calculate(nums[i], nums[i+1], &ops[i]);
                     ops.remove(i);
@@ -88,14 +81,7 @@ fn calculate_v2(mut nums: Vec<f32>, mut ops: Vec<Operation>) -> f32 {
     while ops.contains(&Operation::Add) | ops.contains(&Operation::Subtract) {
         for i in 0..ops.len() {
             match ops[i] {
-                Operation::Add => {
-                    debug(nums[i], nums[i+1], &ops[i]);
-                    nums[i] = calculate(nums[i], nums[i+1], &ops[i]);
-                    ops.remove(i);
-                    nums.remove(i+1);
-                    break;
-                },
-                Operation::Subtract => {
+                Operation::Add | Operation::Subtract => {
                     debug(nums[i], nums[i+1], &ops[i]);
                     nums[i] = calculate(nums[i], nums[i+1], &ops[i]);
                     ops.remove(i);
