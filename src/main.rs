@@ -35,7 +35,7 @@ fn calculate(num1: f32, num2: f32, op: &Operation) -> f32 {
         Operation::Divide => num1 / num2,
         Operation::Exponent => {
             if num1 < 0. {
-                -((num1*-1.).powf(num2))
+                -(num1.powf(num2))
             } else {
                 num1.powf(num2)
             }
