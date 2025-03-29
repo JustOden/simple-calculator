@@ -84,9 +84,10 @@ fn tokenize(s: String) -> Vec<Token> {
                 },
                 Token::Operation(op) => {
                     if !opened {
-                        let no_prev = i == 0;
+                        let no_prev: bool = i == 0;
                         if no_prev || Operator::from_str(s.get(i-1..i).unwrap()).is_ok() {
                             if op == Operator::Subtract {
+                                num_index = i;
                                 num_count += 1;
                             }
                         } else {
@@ -100,7 +101,6 @@ fn tokenize(s: String) -> Vec<Token> {
                         open_paren_index = i;
                         opened = true;
                     }
-                    
                 },
                 Token::CloseParen => {
                     close_paren_count += 1;
@@ -149,7 +149,14 @@ fn calculate_v2(tokens: Vec<Token>) -> f32 {
         match token {
             Token::Number(num) => nums.push(num),
             Token::Operation(op) => ops.push(op),
-            Token::ParenExpr(s) => nums.push(calculate_v2(tokenize(s))),
+            Token::ParenExpr(s) => {
+                if ops[ops.len()-1] == Operator::Subtract {
+                    nums.push(-calculate_v2(tokenize(s)));
+                    ops.remove(ops.len()-1);
+                } else {
+                    nums.push(calculate_v2(tokenize(s)));
+                }
+            },
             _ => ()
         }
     }
@@ -213,5 +220,6 @@ fn main() {
     equation.retain(|c: char| !c.is_whitespace());
 
     let tokens: Vec<Token> = tokenize(equation);
+    println!("{:?}", tokens);
     println!("Answer = {}", calculate_v2(tokens));
 }
