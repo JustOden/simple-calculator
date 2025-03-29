@@ -12,7 +12,7 @@ enum Operator {
     Subtract,
     Multiply,
     Divide,
-    Exponent
+    Exponent,
 }
 
 impl FromStr for Operator {
@@ -62,7 +62,6 @@ impl FromStr for Token {
 }
 
 fn tokenize(s: String) -> Vec<Token> {
-    // TODO (bug): need to tokenize negative numbers
     let mut tokens: Vec<Token> = vec![];
 
     let mut num_index: usize = 0;
@@ -83,9 +82,16 @@ fn tokenize(s: String) -> Vec<Token> {
                         num_count += 1;
                     }
                 },
-                Token::Operation(_) => {
+                Token::Operation(op) => {
                     if !opened {
-                        tokens.push(token)
+                        let no_prev = i == 0;
+                        if no_prev || Operator::from_str(s.get(i-1..i).unwrap()).is_ok() {
+                            if op == Operator::Subtract {
+                                num_count += 1;
+                            }
+                        } else {
+                            tokens.push(token)
+                        }
                     }
                 },
                 Token::OpenParen => {
@@ -204,8 +210,8 @@ fn main() {
 
     println!("Enter equation...");
     io::stdin().read_line(&mut equation).expect("Reading input failed.");
+    equation.retain(|c: char| !c.is_whitespace());
 
     let tokens: Vec<Token> = tokenize(equation);
-    println!("Tokens = {:?}", tokens);
     println!("Answer = {}", calculate_v2(tokens));
 }
