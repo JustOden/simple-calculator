@@ -83,9 +83,9 @@ fn tokenize(s: String) -> Vec<Token> {
                         num_count += 1;
                     }
                 },
-                Token::Operation(op) => {
+                Token::Operation(_) => {
                     if !opened {
-                        tokens.push(Token::Operation(op))
+                        tokens.push(token)
                     }
                 },
                 Token::OpenParen => {
