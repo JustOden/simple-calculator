@@ -3,8 +3,11 @@ use std::{io, str::FromStr};
 #[derive(Debug)]
 struct InvalidOperator;
 
-#[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
-enum Operation {
+#[derive(Debug)]
+struct InvalidToken;
+
+#[derive(Debug, PartialEq, Clone, Copy)]
+enum Operator {
     Add,
     Subtract,
     Multiply,
@@ -12,7 +15,7 @@ enum Operation {
     Exponent
 }
 
-impl FromStr for Operation {
+impl FromStr for Operator {
     type Err = InvalidOperator;
 
     fn from_str(op: &str) -> Result<Self, Self::Err> {
@@ -27,13 +30,102 @@ impl FromStr for Operation {
     }
 }
 
-fn calculate(num1: f32, num2: f32, op: &Operation) -> f32 {
+#[derive(Debug, PartialEq)]
+enum Token {
+    Operation(Operator),
+    Number(f32),
+    DecPoint,
+    OpenParen,
+    CloseParen,
+    ParenExpr(String)
+}
+
+impl FromStr for Token {
+    type Err = InvalidToken;
+
+    fn from_str(token: &str) -> Result<Self, Self::Err> {
+        if let Ok(op) = Operator::from_str(token) {
+            Ok(Self::Operation(op))
+
+        } else if let Ok(num) = token.parse::<f32>() {
+            Ok(Self::Number(num))
+
+        } else {
+            Ok(match token {
+                "(" => Self::OpenParen,
+                ")" => Self::CloseParen,
+                "." => Self::DecPoint,
+                _ => return Err(InvalidToken)
+            })
+        }
+    }
+}
+
+fn tokenize(s: String) -> Vec<Token> {
+    // TODO (bug): need to tokenize negative numbers
+    let mut tokens: Vec<Token> = vec![];
+
+    let mut num_index: usize = 0;
+    let mut num_count: usize = 0;
+
+    let mut open_paren_index: usize = 0;
+    let mut open_paren_count: i32 = 0;
+
+    let mut close_paren_count: i32 = 0;
+    let mut opened: bool = false;
+
+    for (i, c) in s.chars().enumerate() {
+        if let Ok(token) = Token::from_str(&c.to_string()) {
+            match token {
+                Token::Number(_) | Token::DecPoint => {
+                    if !opened {
+                        num_index = i;
+                        num_count += 1;
+                    }
+                },
+                Token::Operation(op) => {
+                    if !opened {
+                        tokens.push(Token::Operation(op))
+                    }
+                },
+                Token::OpenParen => {
+                    open_paren_count += 1;
+                    if !opened {
+                        open_paren_index = i;
+                        opened = true;
+                    }
+                    
+                },
+                Token::CloseParen => {
+                    close_paren_count += 1;
+                    if open_paren_count == close_paren_count {
+                        tokens.push(Token::ParenExpr(s.get(open_paren_index+1..i).unwrap().to_string()));
+                        opened = false;
+                    }
+                },
+                _ => ()
+            }
+
+            let next_str: Option<&str> = s.get(i..=i+1);
+
+            if next_str.is_none() || next_str.is_some() && next_str.unwrap().parse::<f32>().is_err() {
+                if num_count > 0 {
+                    tokens.push(Token::from_str(s.get(num_index-(num_count-1)..=num_index).unwrap()).unwrap());
+                    num_count = 0;
+                }
+            }
+        }
+    }
+    tokens
+}
+
+fn calculate(num1: f32, num2: f32, op: Operator) -> f32 {
     match op {
-        Operation::Add => num1 + num2,
-        Operation::Subtract => num1 - num2,
-        Operation::Multiply => num1 * num2,
-        Operation::Divide => num1 / num2,
-        Operation::Exponent => {
+        Operator::Add => num1 + num2,
+        Operator::Subtract => num1 - num2,
+        Operator::Multiply => num1 * num2,
+        Operator::Divide => num1 / num2,
+        Operator::Exponent => {
             if num1 < 0. {
                 -(num1.powf(num2))
             } else {
@@ -43,17 +135,25 @@ fn calculate(num1: f32, num2: f32, op: &Operation) -> f32 {
     }
 }
 
-fn debug(num1: f32, num2: f32, op: &Operation) {
-    println!("{} {:?} {} = {}", num1, op, num2, calculate(num1, num2, op))
-}
+fn calculate_v2(tokens: Vec<Token>) -> f32 {
+    let mut nums: Vec<f32> = vec![];
+    let mut ops: Vec<Operator> = vec![];
 
-fn calculate_v2(mut nums: Vec<f32>, mut ops: Vec<Operation>) -> f32 {
-    while ops.contains(&Operation::Exponent) {
+    for token in tokens {
+        match token {
+            Token::Number(num) => nums.push(num),
+            Token::Operation(op) => ops.push(op),
+            Token::ParenExpr(s) => nums.push(calculate_v2(tokenize(s))),
+            _ => ()
+        }
+    }
+
+    while ops.contains(&Operator::Exponent) {
         for i in 0..ops.len() {
             match ops[i] {
-                Operation::Exponent => {
-                    debug(nums[i], nums[i+1], &ops[i]);
-                    nums[i] = calculate(nums[i], nums[i+1], &ops[i]);
+                Operator::Exponent => {
+                    debug(nums[i], nums[i+1], ops[i]);
+                    nums[i] = calculate(nums[i], nums[i+1], ops[i]);
                     ops.remove(i);
                     nums.remove(i+1);
                     break;
@@ -63,12 +163,12 @@ fn calculate_v2(mut nums: Vec<f32>, mut ops: Vec<Operation>) -> f32 {
         }
     }
 
-    while ops.contains(&Operation::Multiply) | ops.contains(&Operation::Divide) {
+    while ops.contains(&Operator::Multiply) | ops.contains(&Operator::Divide) {
         for i in 0..ops.len() {
             match ops[i] {
-                Operation::Multiply | Operation::Divide => {
-                    debug(nums[i], nums[i+1], &ops[i]);
-                    nums[i] = calculate(nums[i], nums[i+1], &ops[i]);
+                Operator::Multiply | Operator::Divide => {
+                    debug(nums[i], nums[i+1], ops[i]);
+                    nums[i] = calculate(nums[i], nums[i+1], ops[i]);
                     ops.remove(i);
                     nums.remove(i+1);
                     break;
@@ -78,12 +178,12 @@ fn calculate_v2(mut nums: Vec<f32>, mut ops: Vec<Operation>) -> f32 {
         }
     }
 
-    while ops.contains(&Operation::Add) | ops.contains(&Operation::Subtract) {
+    while ops.contains(&Operator::Add) | ops.contains(&Operator::Subtract) {
         for i in 0..ops.len() {
             match ops[i] {
-                Operation::Add | Operation::Subtract => {
-                    debug(nums[i], nums[i+1], &ops[i]);
-                    nums[i] = calculate(nums[i], nums[i+1], &ops[i]);
+                Operator::Add | Operator::Subtract => {
+                    debug(nums[i], nums[i+1], ops[i]);
+                    nums[i] = calculate(nums[i], nums[i+1], ops[i]);
                     ops.remove(i);
                     nums.remove(i+1);
                     break;
@@ -95,54 +195,17 @@ fn calculate_v2(mut nums: Vec<f32>, mut ops: Vec<Operation>) -> f32 {
     nums[0]
 }
 
-#[allow(dead_code)]
-fn math1() {
-    let mut num1: String = String::new();
-    let mut num2: String = String::new();
-    let mut op: String = String::new();
-
-    println!("Enter num1");
-    io::stdin().read_line(&mut num1).expect("Reading input failed.");
-    println!("Enter op");
-    io::stdin().read_line(&mut op).expect("Reading input failed.");
-    println!("Enter num2");
-    io::stdin().read_line(&mut num2).expect("Reading input failed.");
-
-    let num1: f32 = num1.trim().parse().expect("expected number");
-    let num2: f32 = num2.trim().parse().expect("expected number");
-    let op: Result<Operation, InvalidOperator> = Operation::from_str(op.trim());
-    
-    match op {
-        Ok(op) => println!("Answer is {}", calculate(num1, num2, &op)),
-        Err(e) => println!("{:?}", e)
-    }
+fn debug(num1: f32, num2: f32, op: Operator) {
+    println!("{} {:?} {} = {}", num1, op, num2, calculate(num1, num2, op));
 }
 
-#[allow(dead_code)]
-fn math2() {
+fn main() {
     let mut equation: String = String::new();
 
     println!("Enter equation...");
     io::stdin().read_line(&mut equation).expect("Reading input failed.");
 
-    let mut nums = vec![];
-    let mut ops = vec![];
-
-    for s in equation.split(" ") {
-        let op: Result<Operation, InvalidOperator> = Operation::from_str(s.trim());
-        
-        if let Ok(op) = op {
-            ops.push(op);
-
-        } else {
-            let number: f32 = s.trim().parse().expect("Expected number");
-            nums.push(number);
-        }
-    }
-    println!("Answer is {}", calculate_v2(nums, ops))
-}
-
-fn main() {
-    math1();
-    math2();
+    let tokens: Vec<Token> = tokenize(equation);
+    println!("Tokens = {:?}", tokens);
+    println!("Answer = {}", calculate_v2(tokens));
 }
