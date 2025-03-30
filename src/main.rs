@@ -126,7 +126,7 @@ fn tokenize(s: String) -> Vec<Token> {
 }
 
 fn calculate(num1: f32, num2: f32, op: Operator) -> f32 {
-    match op {
+    let ans: f32 = match op {
         Operator::Add => num1 + num2,
         Operator::Subtract => num1 - num2,
         Operator::Multiply => num1 * num2,
@@ -138,7 +138,9 @@ fn calculate(num1: f32, num2: f32, op: Operator) -> f32 {
                 num1.powf(num2)
             }
         }
-    }
+    };
+    debug(num1, num2, op, ans);
+    ans
 }
 
 fn calculate_v2(tokens: Vec<Token>) -> f32 {
@@ -150,7 +152,7 @@ fn calculate_v2(tokens: Vec<Token>) -> f32 {
             Token::Number(num) => nums.push(num),
             Token::Operation(op) => ops.push(op),
             Token::ParenExpr(s) => {
-                if ops[ops.len()-1] == Operator::Subtract && ops.len()+1 == nums.len() {
+                if ops[ops.len()-1] == Operator::Subtract && ops.len()+1 >= nums.len() {
                     nums.push(-calculate_v2(tokenize(s)));
                     ops.remove(ops.len()-1);
                 } else {
@@ -161,14 +163,10 @@ fn calculate_v2(tokens: Vec<Token>) -> f32 {
         }
     }
 
-    println!("{:?}", nums);
-    println!("{:?}", ops);
-
     while ops.contains(&Operator::Exponent) {
         for i in 0..ops.len() {
             match ops[i] {
                 Operator::Exponent => {
-                    debug(nums[i], nums[i+1], ops[i]);
                     nums[i] = calculate(nums[i], nums[i+1], ops[i]);
                     ops.remove(i);
                     nums.remove(i+1);
@@ -183,7 +181,6 @@ fn calculate_v2(tokens: Vec<Token>) -> f32 {
         for i in 0..ops.len() {
             match ops[i] {
                 Operator::Multiply | Operator::Divide => {
-                    debug(nums[i], nums[i+1], ops[i]);
                     nums[i] = calculate(nums[i], nums[i+1], ops[i]);
                     ops.remove(i);
                     nums.remove(i+1);
@@ -198,7 +195,6 @@ fn calculate_v2(tokens: Vec<Token>) -> f32 {
         for i in 0..ops.len() {
             match ops[i] {
                 Operator::Add | Operator::Subtract => {
-                    debug(nums[i], nums[i+1], ops[i]);
                     nums[i] = calculate(nums[i], nums[i+1], ops[i]);
                     ops.remove(i);
                     nums.remove(i+1);
@@ -211,8 +207,8 @@ fn calculate_v2(tokens: Vec<Token>) -> f32 {
     nums[0]
 }
 
-fn debug(num1: f32, num2: f32, op: Operator) {
-    println!("{} {:?} {} = {}", num1, op, num2, calculate(num1, num2, op));
+fn debug(num1: f32, num2: f32, op: Operator, ans: f32) {
+    println!("{} {:?} {} = {}", num1, op, num2, ans);
 }
 
 fn main() {
@@ -223,6 +219,5 @@ fn main() {
     equation.retain(|c: char| !c.is_whitespace());
 
     let tokens: Vec<Token> = tokenize(equation);
-    println!("{:?}", tokens);
     println!("Answer = {}", calculate_v2(tokens));
 }
