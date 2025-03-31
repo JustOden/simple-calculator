@@ -18,10 +18,10 @@ fn main() {
 }
 
 #[derive(Debug)]
-struct InvalidOperator;
-
-#[derive(Debug)]
-struct InvalidToken;
+enum ParseError {
+    InvalidOperator,
+    InvalidToken
+}
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 enum Operator {
@@ -33,7 +33,7 @@ enum Operator {
 }
 
 impl FromStr for Operator {
-    type Err = InvalidOperator;
+    type Err = ParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(match s {
@@ -42,7 +42,7 @@ impl FromStr for Operator {
             "*" | "x" => Self::Multiply,
             "/" => Self::Divide,
             "^" => Self::Exponent,
-            _ => return Err(InvalidOperator)
+            _ => return Err(ParseError::InvalidOperator)
         })
     }
 }
@@ -50,7 +50,7 @@ impl FromStr for Operator {
 #[derive(Debug, PartialEq)]
 enum Token {
     Operation(Operator),
-    Number(f32),
+    Number(f64),
     DecPoint,
     OpenParen,
     CloseParen,
@@ -59,13 +59,13 @@ enum Token {
 }
 
 impl FromStr for Token {
-    type Err = InvalidToken;
+    type Err = ParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if let Ok(op) = Operator::from_str(s) {
             Ok(Self::Operation(op))
 
-        } else if let Ok(num) = s.parse::<f32>() {
+        } else if let Ok(num) = s.parse::<f64>() {
             Ok(Self::Number(num))
 
         } else {
@@ -73,7 +73,7 @@ impl FromStr for Token {
                 "(" => Self::OpenParen,
                 ")" => Self::CloseParen,
                 "." => Self::DecPoint,
-                _ => return Err(InvalidToken)
+                _ => return Err(ParseError::InvalidToken)
             })
         }
     }
@@ -106,10 +106,10 @@ fn tokenize(s: String) -> Vec<Token> {
                     if !paren_opened {
 
                         let unary_minus: bool = {
-                            tokens.len() > 1 && 
-                            Operator::from_str(s.get(i-1..i).unwrap()).is_ok() && 
-                            op == Operator::Subtract || 
-                            tokens.len() == 0 && 
+                            tokens.len() > 1 &&
+                            Operator::from_str(s.get(i-1..i).unwrap()).is_ok() &&
+                            op == Operator::Subtract ||
+                            tokens.is_empty() &&
                             op == Operator::Subtract
                         };
                         
@@ -127,13 +127,13 @@ fn tokenize(s: String) -> Vec<Token> {
                 Token::OpenParen => {
                     open_paren_count += 1;
                     if !paren_opened {
-                        
+
                         let unary_minus: bool = {
-                            tokens.len() > 1 && 
-                            Operator::from_str(s.get(i-2..i-1).unwrap()).is_ok() && 
-                            tokens[tokens.len()-1] == Token::Operation(Operator::Subtract) || 
-                            tokens.len() == 1 && 
-                            tokens[tokens.len()-1] == Token::Operation(Operator::Subtract)
+                            tokens.len() > 1 &&
+                            Operator::from_str(s.get(i-2..i-1).unwrap()).is_ok() &&
+                            tokens.last().is_some_and(|t| *t == Token::Operation(Operator::Subtract)) ||
+                            tokens.len() == 1 &&
+                            tokens.last().is_some_and(|t| *t == Token::Operation(Operator::Subtract))
                         };
 
                         if unary_minus {
@@ -146,7 +146,7 @@ fn tokenize(s: String) -> Vec<Token> {
 
                         open_paren_index = i;
                         paren_opened = true;
-                        
+
                     } else {
                         continue;
                     }
@@ -155,19 +155,12 @@ fn tokenize(s: String) -> Vec<Token> {
                     close_paren_count += 1;
                     if open_paren_count == close_paren_count {
                         if neg_paren {
-                            tokens.push(
-                                Token::NegParenExpr(
-                                    tokenize(s.get(open_paren_index+1..i).unwrap().to_string())
-                                )
-                            );
+                            tokens.push(Token::NegParenExpr(tokenize(s.get(open_paren_index+1..i).unwrap().to_string())));
+
                         } else {
-                            tokens.push(
-                                Token::ParenExpr(
-                                    tokenize(s.get(open_paren_index+1..i).unwrap().to_string())
-                                )
-                            );
+                            tokens.push(Token::ParenExpr(tokenize(s.get(open_paren_index+1..i).unwrap().to_string())));
                         }
-                        
+
                         paren_opened = false;
                     }
                 },
@@ -175,7 +168,7 @@ fn tokenize(s: String) -> Vec<Token> {
             }
             let next_str: Option<&str> = s.get(i..=i+1);
 
-            if next_str.is_none() || next_str.is_some() && next_str.unwrap().parse::<f32>().is_err() {
+            if next_str.is_none() || next_str.is_some() && next_str.unwrap().parse::<f64>().is_err() {
                 if str_num.len() > 0 {
                     tokens.push(Token::from_str(&str_num).unwrap());
                     str_num = String::new();
@@ -186,8 +179,8 @@ fn tokenize(s: String) -> Vec<Token> {
     tokens
 }
 
-fn calculate(num1: f32, num2: f32, op: Operator) -> f32 {
-    let ans: f32 = match op {
+fn calculate(num1: f64, num2: f64, op: Operator) -> f64 {
+    let ans: f64 = match op {
         Operator::Add => num1 + num2,
         Operator::Subtract => num1 - num2,
         Operator::Multiply => num1 * num2,
@@ -204,8 +197,8 @@ fn calculate(num1: f32, num2: f32, op: Operator) -> f32 {
     ans
 }
 
-fn calculate_v2(tokens: Vec<Token>) -> f32 {
-    let mut nums: Vec<f32> = vec![];
+fn calculate_v2(tokens: Vec<Token>) -> f64 {
+    let mut nums: Vec<f64> = vec![];
     let mut ops: Vec<Operator> = vec![];
 
     for token in tokens {
