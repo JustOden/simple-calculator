@@ -37,7 +37,8 @@ enum Token {
     DecPoint,
     OpenParen,
     CloseParen,
-    ParenExpr(String)
+    ParenExpr(Vec<Token>),
+    NegParenExpr(Vec<Token>)
 }
 
 impl FromStr for Token {
@@ -63,61 +64,104 @@ impl FromStr for Token {
 
 fn tokenize(s: String) -> Vec<Token> {
     let mut tokens: Vec<Token> = vec![];
-
-    let mut num_index: usize = 0;
-    let mut num_count: usize = 0;
+    let mut str_num: String = String::new();
 
     let mut open_paren_index: usize = 0;
     let mut open_paren_count: i32 = 0;
 
     let mut close_paren_count: i32 = 0;
-    let mut opened: bool = false;
+    let mut paren_opened: bool = false;
+
+    let mut neg_paren: bool = false;
 
     for (i, c) in s.chars().enumerate() {
         if let Ok(token) = Token::from_str(&c.to_string()) {
             match token {
                 Token::Number(_) | Token::DecPoint => {
-                    if !opened {
-                        num_index = i;
-                        num_count += 1;
+                    if !paren_opened {
+                        str_num.push(c);
+
+                    } else {
+                        continue;
                     }
                 },
                 Token::Operation(op) => {
-                    if !opened {
-                        let no_prev: bool = i == 0;
-                        if no_prev || Operator::from_str(s.get(i-1..i).unwrap()).is_ok() {
-                            if op == Operator::Subtract {
-                                num_index = i;
-                                num_count += 1;
-                            }
+                    if !paren_opened {
+
+                        let unary_minus: bool = {
+                            tokens.len() > 1 && 
+                            Operator::from_str(s.get(i-1..i).unwrap()).is_ok() && 
+                            op == Operator::Subtract || 
+                            tokens.len() == 0 && 
+                            op == Operator::Subtract
+                        };
+                        
+                        if unary_minus {
+                            str_num.push(c);
+
                         } else {
-                            tokens.push(token)
+                            tokens.push(token);
                         }
+
+                    } else {
+                        continue;
                     }
                 },
                 Token::OpenParen => {
                     open_paren_count += 1;
-                    if !opened {
+                    if !paren_opened {
+                        
+                        let unary_minus: bool = {
+                            tokens.len() > 1 && 
+                            Operator::from_str(s.get(i-2..i-1).unwrap()).is_ok() && 
+                            tokens[tokens.len()-1] == Token::Operation(Operator::Subtract) || 
+                            tokens.len() == 1 && 
+                            tokens[tokens.len()-1] == Token::Operation(Operator::Subtract)
+                        };
+
+                        if unary_minus {
+                            neg_paren = true;
+                            tokens.remove(tokens.len()-1);
+
+                        } else {
+                            neg_paren = false;
+                        }
+
                         open_paren_index = i;
-                        opened = true;
+                        paren_opened = true;
+                        
+                    } else {
+                        continue;
                     }
                 },
                 Token::CloseParen => {
                     close_paren_count += 1;
                     if open_paren_count == close_paren_count {
-                        tokens.push(Token::ParenExpr(s.get(open_paren_index+1..i).unwrap().to_string()));
-                        opened = false;
+                        if neg_paren {
+                            tokens.push(
+                                Token::NegParenExpr(
+                                    tokenize(s.get(open_paren_index+1..i).unwrap().to_string())
+                                )
+                            );
+                        } else {
+                            tokens.push(
+                                Token::ParenExpr(
+                                    tokenize(s.get(open_paren_index+1..i).unwrap().to_string())
+                                )
+                            );
+                        }
+                        
+                        paren_opened = false;
                     }
                 },
                 _ => ()
             }
-
             let next_str: Option<&str> = s.get(i..=i+1);
 
             if next_str.is_none() || next_str.is_some() && next_str.unwrap().parse::<f32>().is_err() {
-                if num_count > 0 {
-                    tokens.push(Token::from_str(s.get(num_index-(num_count-1)..=num_index).unwrap()).unwrap());
-                    num_count = 0;
+                if str_num.len() > 0 {
+                    tokens.push(Token::from_str(&str_num).unwrap());
+                    str_num = String::new();
                 }
             }
         }
@@ -139,7 +183,7 @@ fn calculate(num1: f32, num2: f32, op: Operator) -> f32 {
             }
         }
     };
-    debug(num1, num2, op, ans);
+    debug(num1, op, num2, ans);
     ans
 }
 
@@ -151,14 +195,8 @@ fn calculate_v2(tokens: Vec<Token>) -> f32 {
         match token {
             Token::Number(num) => nums.push(num),
             Token::Operation(op) => ops.push(op),
-            Token::ParenExpr(s) => {
-                if ops[ops.len()-1] == Operator::Subtract && ops.len()+1 >= nums.len() {
-                    nums.push(-calculate_v2(tokenize(s)));
-                    ops.remove(ops.len()-1);
-                } else {
-                    nums.push(calculate_v2(tokenize(s)));
-                }
-            },
+            Token::ParenExpr(t) => nums.push(calculate_v2(t)),
+            Token::NegParenExpr(t) => nums.push(-calculate_v2(t)),
             _ => ()
         }
     }
@@ -207,7 +245,7 @@ fn calculate_v2(tokens: Vec<Token>) -> f32 {
     nums[0]
 }
 
-fn debug(num1: f32, num2: f32, op: Operator, ans: f32) {
+fn debug(num1: f32, op: Operator, num2: f32, ans: f32) {
     println!("{} {:?} {} = {}", num1, op, num2, ans);
 }
 
