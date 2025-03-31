@@ -18,11 +18,11 @@ enum Operator {
 impl FromStr for Operator {
     type Err = InvalidOperator;
 
-    fn from_str(op: &str) -> Result<Self, Self::Err> {
-        Ok(match op {
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(match s {
             "+" => Self::Add,
             "-" => Self::Subtract,
-            "*" => Self::Multiply,
+            "*" | "x" => Self::Multiply,
             "/" => Self::Divide,
             "^" => Self::Exponent,
             _ => return Err(InvalidOperator)
@@ -44,15 +44,15 @@ enum Token {
 impl FromStr for Token {
     type Err = InvalidToken;
 
-    fn from_str(token: &str) -> Result<Self, Self::Err> {
-        if let Ok(op) = Operator::from_str(token) {
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if let Ok(op) = Operator::from_str(s) {
             Ok(Self::Operation(op))
 
-        } else if let Ok(num) = token.parse::<f32>() {
+        } else if let Ok(num) = s.parse::<f32>() {
             Ok(Self::Number(num))
 
         } else {
-            Ok(match token {
+            Ok(match s {
                 "(" => Self::OpenParen,
                 ")" => Self::CloseParen,
                 "." => Self::DecPoint,
