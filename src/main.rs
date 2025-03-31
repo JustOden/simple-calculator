@@ -1,4 +1,4 @@
-use std::{io, io::Write ,str::FromStr};
+use std::{io, io::Write, str::FromStr};
 
 const DEBUG_MODE: bool = false;
 
