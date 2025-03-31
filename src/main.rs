@@ -1,4 +1,21 @@
-use std::{io, str::FromStr};
+use std::{io, io::Write ,str::FromStr};
+
+const DEBUG_MODE: bool = false;
+
+fn main() {
+    let mut equation: String = String::new();
+
+    print!("Enter equation: ");
+    let _=io::stdout().flush();
+
+    io::stdin().read_line(&mut equation).expect("Reading input failed.");
+    equation.retain(|c: char| !c.is_whitespace());
+
+    let tokens: Vec<Token> = tokenize(equation);
+
+    if DEBUG_MODE {println!("Tokens: {:?}", tokens);}
+    println!("Answer: {}", calculate_v2(tokens));
+}
 
 #[derive(Debug)]
 struct InvalidOperator;
@@ -246,16 +263,7 @@ fn calculate_v2(tokens: Vec<Token>) -> f32 {
 }
 
 fn debug(num1: f32, op: Operator, num2: f32, ans: f32) {
-    println!("{} {:?} {} = {}", num1, op, num2, ans);
-}
-
-fn main() {
-    let mut equation: String = String::new();
-
-    println!("Enter equation...");
-    io::stdin().read_line(&mut equation).expect("Reading input failed.");
-    equation.retain(|c: char| !c.is_whitespace());
-
-    let tokens: Vec<Token> = tokenize(equation);
-    println!("Answer = {}", calculate_v2(tokens));
+    if DEBUG_MODE {
+        println!("{} {:?} {} = {}", num1, op, num2, ans);
+    }
 }
