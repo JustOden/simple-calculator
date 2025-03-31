@@ -13,7 +13,7 @@ fn main() {
 
     let tokens: Vec<Token> = tokenize(equation);
 
-    if DEBUG_MODE {println!("Tokens: {:?}", tokens);}
+    if DEBUG_MODE {println!("Tokens: {:?}", tokens)}
     println!("Answer: {}", calculate_v2(tokens));
 }
 
@@ -200,7 +200,7 @@ fn calculate(num1: f32, num2: f32, op: Operator) -> f32 {
             }
         }
     };
-    debug(num1, op, num2, ans);
+    if DEBUG_MODE {println!("{} {:?} {} = {}", num1, op, num2, ans)};
     ans
 }
 
@@ -260,10 +260,4 @@ fn calculate_v2(tokens: Vec<Token>) -> f32 {
         }
     }
     nums[0]
-}
-
-fn debug(num1: f32, op: Operator, num2: f32, ans: f32) {
-    if DEBUG_MODE {
-        println!("{} {:?} {} = {}", num1, op, num2, ans);
-    }
 }
