@@ -230,6 +230,10 @@ fn calculate_v2(tokens: Vec<Token>) -> Option<f64> {
         }
     }
 
+    if ops.len() >= nums.len() {
+        return None;
+    }
+
     while ops.contains(&Operator::Exponent) {
         for i in 0..ops.len() {
             match ops[i] {
