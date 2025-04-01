@@ -3,18 +3,27 @@ use std::{io, io::Write, str::FromStr};
 const DEBUG_MODE: bool = false;
 
 fn main() {
-    let mut equation: String = String::new();
+    println!("Enter an equation (ex. '5^(6/3)') or type 'exit' to quit: ");
+    loop {
+        let mut equation: String = String::new();
 
-    print!("Enter equation: ");
-    let _=io::stdout().flush();
+        print!(">> ");
+        let _=io::stdout().flush();
 
-    io::stdin().read_line(&mut equation).expect("Reading input failed.");
-    equation.retain(|c: char| !c.is_whitespace());
+        io::stdin().read_line(&mut equation).expect("Reading input failed.");
+        equation.retain(|c: char| !c.is_whitespace());
 
-    let tokens: Vec<Token> = tokenize(equation);
+        if equation.to_lowercase() == "exit" {break}
 
-    if DEBUG_MODE {println!("Tokens: {:?}", tokens)}
-    println!("Answer: {}", calculate_v2(tokens));
+        let tokens: Vec<Token> = tokenize(equation);
+
+        if DEBUG_MODE {println!("Tokens: {:?}", tokens)}
+
+        match calculate_v2(tokens) {
+            Some(n) => println!("Answer: {}", n),
+            None => println!("Invalid syntax")
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -168,7 +177,7 @@ fn tokenize(s: String) -> Vec<Token> {
             }
             let next_str: Option<&str> = s.get(i..=i+1);
 
-            if next_str.is_none() || next_str.is_some() && next_str.unwrap().parse::<f64>().is_err() {
+            if next_str.is_none() || next_str.unwrap().parse::<f64>().is_err() {
                 if str_num.len() > 0 {
                     tokens.push(Token::from_str(&str_num).unwrap());
                     str_num = String::new();
@@ -197,7 +206,7 @@ fn calculate(num1: f64, num2: f64, op: Operator) -> f64 {
     ans
 }
 
-fn calculate_v2(tokens: Vec<Token>) -> f64 {
+fn calculate_v2(tokens: Vec<Token>) -> Option<f64> {
     let mut nums: Vec<f64> = vec![];
     let mut ops: Vec<Operator> = vec![];
 
@@ -205,8 +214,18 @@ fn calculate_v2(tokens: Vec<Token>) -> f64 {
         match token {
             Token::Number(num) => nums.push(num),
             Token::Operation(op) => ops.push(op),
-            Token::ParenExpr(t) => nums.push(calculate_v2(t)),
-            Token::NegParenExpr(t) => nums.push(-calculate_v2(t)),
+            Token::ParenExpr(t) => nums.push(
+                match calculate_v2(t) {
+                    Some(n) => n,
+                    None => return None,
+                }
+            ),
+            Token::NegParenExpr(t) => nums.push(
+                match calculate_v2(t) {
+                    Some(n) => -n,
+                    None => return None,
+                }
+            ),
             _ => ()
         }
     }
@@ -252,5 +271,10 @@ fn calculate_v2(tokens: Vec<Token>) -> f64 {
             }
         }
     }
-    nums[0]
+
+    if nums.is_empty() {
+        None
+    } else {
+        Some(nums[0])
+    }
 }
