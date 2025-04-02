@@ -3,7 +3,7 @@ use std::{io, io::Write, str::FromStr};
 const DEBUG_MODE: bool = false;
 
 fn main() {
-    println!("Enter an equation (ex. '5^(6/3)') or type 'exit' to quit: ");
+    println!("Enter an equation (ex. '5^(6/3)') or 'exit' to quit: ");
     loop {
         let mut equation: String = String::new();
 
@@ -276,9 +276,9 @@ fn calculate_v2(tokens: Vec<Token>) -> Option<f64> {
         }
     }
 
-    if nums.is_empty() {
-        None
-    } else {
+    if nums.len() == 1 {
         Some(nums[0])
+    } else {
+        None
     }
 }
